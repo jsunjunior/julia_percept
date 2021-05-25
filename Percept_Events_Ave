@@ -1,0 +1,210 @@
+clear all
+close all
+
+%Extract Percept patient "events" and plot mean FFTB and frequency with
+%error bars and legend
+%'LfpFrequencySnapshotEvents' must exist
+
+patient_events=json_to_mat();
+events=patient_events.DiagnosticData.LfpFrequencySnapshotEvents;
+
+%make it cell array struct, get all events with LfpFrequencySnapshotEvents 
+%cause need LfpFrequencySnapshotEvents to have FFTBin and Freq otherwise
+%cannot plot without
+snapshotEvents = {};
+
+for c = 1:length(events)
+    
+    event = events{c};
+    
+    if isfield(event, 'LfpFrequencySnapshotEvents')
+
+        snapshotEvents = [snapshotEvents; event];
+        
+    end
+end
+
+%create matrices to store data, split into event types and L/R hemisphere
+event1L = [];
+event2L = [];
+event3L = [];
+event4L = [];
+event1R = [];
+event2R = [];
+event3R = [];
+event4R = [];
+
+%store FFTB so can average later on
+event1LFFTB = [];
+event2LFFTB = [];
+event3LFFTB = [];
+event4LFFTB = [];
+event1RFFTB = [];
+event2RFFTB = [];
+event3RFFTB = [];
+event4RFFTB = [];
+
+%compare vectors cause arrays diff
+%define variables to plot
+for c = 1:length(snapshotEvents)
+    event = snapshotEvents{c};
+    
+    if strcmp(event.EventName, 'SOB/wearing Off')
+        event1L = [event1L event.LfpFrequencySnapshotEvents.HemisphereLocationDef_Left];
+        event1R = [event1R event.LfpFrequencySnapshotEvents.HemisphereLocationDef_Right];
+        event1LFFTB = [event1LFFTB event.LfpFrequencySnapshotEvents.HemisphereLocationDef_Left.FFTBinData];
+        event1RFFTB = [event1RFFTB event.LfpFrequencySnapshotEvents.HemisphereLocationDef_Right.FFTBinData];
+    end
+
+    if strcmp(event.EventName, 'Took Meds')
+        event2L = [event2L event.LfpFrequencySnapshotEvents.HemisphereLocationDef_Left];
+        event2R = [event2R event.LfpFrequencySnapshotEvents.HemisphereLocationDef_Right];
+        event2LFFTB = [event2LFFTB event.LfpFrequencySnapshotEvents.HemisphereLocationDef_Left.FFTBinData];
+        event2RFFTB = [event2RFFTB event.LfpFrequencySnapshotEvents.HemisphereLocationDef_Right.FFTBinData];
+    end
+
+    if strcmp(event.EventName, 'Crummy/unmotivated')
+        event3L = [event3L event.LfpFrequencySnapshotEvents.HemisphereLocationDef_Left];
+        event3R = [event3R event.LfpFrequencySnapshotEvents.HemisphereLocationDef_Right];
+        event3LFFTB = [event3LFFTB event.LfpFrequencySnapshotEvents.HemisphereLocationDef_Left.FFTBinData];
+        event3RFFTB = [event3RFFTB event.LfpFrequencySnapshotEvents.HemisphereLocationDef_Right.FFTBinData];
+    end
+
+    if strcmp(event.EventName, 'Tight Trunk')
+        event4L = [event4L event.LfpFrequencySnapshotEvents.HemisphereLocationDef_Left];
+        event4R = [event4R event.LfpFrequencySnapshotEvents.HemisphereLocationDef_Right];
+        event4LFFTB = [event4LFFTB event.LfpFrequencySnapshotEvents.HemisphereLocationDef_Left.FFTBinData];
+        event4RFFTB = [event4RFFTB event.LfpFrequencySnapshotEvents.HemisphereLocationDef_Right.FFTBinData];
+    end
+end
+
+%get mean of all FFTB
+event1Lave = mean(event1LFFTB, 2);
+event1Rave = mean(event1RFFTB, 2);
+event2Lave = mean(event2LFFTB, 2);
+event2Rave = mean(event2RFFTB, 2);
+event3Lave = mean(event3LFFTB, 2);
+event3Rave = mean(event3RFFTB, 2);
+event4Lave = mean(event4LFFTB, 2);
+event4Rave = mean(event4RFFTB, 2);
+
+%get SEM
+event1LSEM = std(event1LFFTB,[],2)/sqrt(size(event1LFFTB,2));
+event1RSEM = std(event1RFFTB,[],2)/sqrt(size(event1RFFTB,2));
+event2LSEM = std(event2LFFTB,[],2)/sqrt(size(event2LFFTB,2));
+event2RSEM = std(event2RFFTB,[],2)/sqrt(size(event2RFFTB,2));
+event3LSEM = std(event3LFFTB,[],2)/sqrt(size(event3LFFTB,2));
+event3RSEM = std(event3RFFTB,[],2)/sqrt(size(event3RFFTB,2));
+event4LSEM = std(event4LFFTB,[],2)/sqrt(size(event4LFFTB,2));
+event4RSEM = std(event4RFFTB,[],2)/sqrt(size(event4RFFTB,2));
+
+%get just one frequency for all plots (since all are same?)
+frequency = event1L(1).Frequency;
+
+%all events on one plot separated by hemisphere
+figure
+    %event 1 left
+    subplot(2,1,1)
+    plot(frequency,event1Lave, '.-')
+    errorbar(frequency, event1Lave, event1LSEM)
+    titlestr = "Left Hemisphere";
+    title(titlestr)
+    xlabel('Frequency (Hz)')
+    ylabel('FFTB (μVp)')
+    
+    %event 2 left
+    hold on
+    subplot(2,1,1)
+    plot(frequency,event2Lave,'.-')
+    errorbar(frequency, event2Lave, event2LSEM)
+    xlabel('Frequency (Hz)')
+    ylabel('FFTB (μVp)')
+    
+    %event 3 left
+    hold on
+    subplot(2,1,1)
+    plot(frequency,event3Lave,'.-')
+    errorbar(frequency, event3Lave, event3LSEM)
+    xlabel('Frequency (Hz)')
+    ylabel('FFTB (μVp)')
+    
+    %event 4 left
+    hold on
+    if isempty(event4Lave) == 1
+        disp('Empty Event');
+    else
+    subplot(2,1,1)
+    plot(frequency,event4Lave,'.-')
+    errorbar(frequency, event4Lave, event4LSEM)
+    xlabel('Frequency (Hz)')
+    ylabel('FFTB (μVp)')
+    end
+    
+    legend('event1LAve','event2LAve', 'event3LAve', 'event4LAve')
+    
+    %event 1 right
+    hold on
+    subplot(2,1,2)
+    plot(frequency, event1Rave, '.-')
+    errorbar(frequency, event1Rave, event1RSEM)
+    subtitle("Right Hemishpere");
+    xlabel('Frequency (Hz)')
+    ylabel('FFTB (μVp)')
+    
+    %event 2 right
+    hold on
+    subplot(2,1,2)
+    plot(frequency, event2Rave, '.-')
+    errorbar(frequency, event2Rave, event2RSEM)
+    xlabel('Frequency (Hz)')
+    ylabel('FFTB (μVp)')
+    
+    %event 3 right
+    hold on
+    subplot(2,1,2)
+    plot(frequency, event3Rave, '.-')
+    errorbar(frequency, event3Rave, event3RSEM)
+    xlabel('Frequency (Hz)')
+    ylabel('FFTB (μVp)')
+    
+    %event 4 right
+    hold on
+    if isempty(event4Rave) == 1
+        disp('Empty Event');
+    else
+    subplot(2,1,1)
+    plot(frequency,event4Rave,'.-')
+    errorbar(frequency, event4Rave, event4RSEM)
+    xlabel('Frequency (Hz)')
+    ylabel('FFTB (μVp)')
+    end
+    
+    %figure legend
+    legend('event1RAve','event2RAve', 'event3RAve', 'event4RAve')
+    
+%Get Patient Events
+%This function calls json file and extracts proper data
+function [js] = json_to_mat()
+%Work in progress to simply load information from Percept json file for data analysis 
+
+%Convert json to structure in Matlab
+% [filename, pathname] = uigetfile('*.json');
+[filename, pathname] = uigetfile('*.json');
+json = fileread([pathname,filename]);
+js = jsondecode(json);
+
+%Display location of Stimulator (sanity check if file is loaded)
+disp(js.DeviceInformation.Final.NeurostimulatorLocation)
+
+%Format dates and other information (add all relevant data here)
+    js.SessionEndDate = datetime(strrep(js.SessionEndDate(1:end-1),'T',' '));
+    js.SessionDate = datetime(strrep(js.SessionDate(1:end-1),'T',' '));
+    js.Diagnosis = strsplit(js.PatientInformation.Final.Diagnosis,'.');js.Diagnosis=js.Diagnosis{2};
+    js.OriginalFile = filename;
+    js.ImplantDate = strrep(strrep(js.DeviceInformation.Final.ImplantDate(1:end-1),'T','_'),':','-');
+    js.BatteryPercentage = js.BatteryInformation.BatteryPercentage;
+    js.LeadLocation = strsplit(js.LeadConfiguration.Final(1).LeadLocation,'.');js.LeadLocation=js.LeadLocation{2};
+   
+%Session labeled 
+js.session = ['ses-' char(datetime(js.SessionDate,'format','yyyyMMddhhmmss')) num2str(js.BatteryPercentage)];
+end
